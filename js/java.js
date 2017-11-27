@@ -1,12 +1,4 @@
-/*
-current problems, timeout after one button click not working
-functions still running after switched off
-*/
-
-
-
 $(document).ready(function() {
-
     //initial function to turn game on
     $('#onBtn').click(function() {
         var on = $('#onBtn').val();
@@ -30,12 +22,15 @@ const audio1 = new Audio('https://s3.amazonaws.com/freecodecamp/simonSound2.mp3'
 const audio2 = new Audio('https://s3.amazonaws.com/freecodecamp/simonSound3.mp3');
 const audio3 = new Audio('https://s3.amazonaws.com/freecodecamp/simonSound4.mp3');
 const loseAudio = new Audio('https://actions.google.com/sounds/v1/weapons/big_explosion_cut_off.ogg');
+const winAudio = new Audio('https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-four/cartoon_success_fanfair.mp3');
 
 //make game faster with each loop
+var round = 0;
 var aTime = 500;
 
 //allow for exiting of game structure when game is off
 var isRunning = true;
+var isStrict = false;
 
 
 function readyStatus() {
@@ -43,7 +38,14 @@ function readyStatus() {
     if (isRunning) {
         $('#counter').removeClass('invisible');
 
-        $('.start').click(function(event) {
+        $('#strict').click(function() {
+            $('#strict-light').toggleClass('light');
+            $('#strict-light').toggleClass('lightactive');
+
+            strictify();
+        });
+
+        $('#start').click(function(event) {
             /* Act on the event */
             $('#counter').val('0' + 0);
             aTime = 500;
@@ -55,58 +57,104 @@ function readyStatus() {
     }
 }
 
+function strictify() {
+    isStrict = isStrict == false ? true : false;
+    console.log(isStrict);
+    return;
+}
+
 function gameStart(combo, time) {
     var combination = combo || [];
     var next = callNext();
     var i = 0; //increment
-    var score = $('#counter').val();
     var click = false; //var to check game time out
     var dTime = time || 5000;
     var repeatDelay = null;
 
-    combination.push(next);
-    console.log(combination);
+    if (round == 20) {
+        winAudio.play();
+        return;
+    } else {
+        combination.push(next);
 
-    //interval to space out pattern activation
-    patternInditcator(combination);
+        counterUp(combination);
+        console.log(combination);
 
-    //end-of-game timeout due to inactivity
-    if (!click) {
-    	setTimeout(function(){
-        repeatDelay = setInterval(loseTimer(combination), dTime);
-    }, dTime);
-    }
-    //user input
-    $('.game').click(function() {
-        var userClick = $(this).attr('id');
-        clickSound(userClick);
-        clearInterval(repeatDelay);
-        //repeatDelay = setInterval(loseTimer(combination), dTime);
-        click = true;
+        //interval to space out pattern activation
+        patternInditcator(combination);
 
-        if (userClick == combination[i]) {
-            i++;
-            if (i == combination.length) {
-                $('.game').off();
-                //score adjust at end of round
-                counterUp(score);
-                //increase game speed at end of round
-                aTime = aTime > 200 ? aTime - 5 : aTime;
-                //recursivly call new round
-                dTime = dTime + 500;
-                gameStart(combination, dTime);
-            }
-        } else {
-            //delay to account for already playing sounds
-            setTimeout(function() {
-                $('#counter').val('! !');
-                loseAudio.play();
-                //revert back to ready status
-                i = 0;
-                patternInditcator(combination);
-            }, 500);
+        //end-of-game timeout due to inactivity
+        if (!click) {
+            repeatDelay = setInterval(function() {
+                console.log('no click');
+                if (isStrict) {
+                    $('#counter').val('! !');
+                    loseAudio.play();
+                    clearInterval(repeatDelay);
+                    $('.game').off();
+                    return;
+                } else {
+                    loseTimer(combination);
+                }
+            }, dTime);
         }
-    });
+        //user input
+        $('.game').click(function() {
+            var userClick = $(this).attr('id');
+            click = true;
+
+            clickSound(userClick);
+
+            clearInterval(repeatDelay);
+
+            repeatDelay = setInterval(function() {
+                if (isStrict) {
+                    $('#counter').val('! !');
+                    loseAudio.play();
+                    clearInterval(repeatDelay);
+                    $('.game').off();
+                    return;
+                } else {
+                    console.log('click');
+                    loseTimer(combination);
+                    i = 0;
+                }
+            }, dTime);
+
+            if (userClick == combination[i]) {
+                i++;
+                if (i == combination.length) {
+                    $('.game').off();
+                    clearInterval(repeatDelay);
+                    //score adjust at end of round
+                    
+                    //increase game speed at end of round
+                    aTime = aTime > 200 ? aTime - 5 : aTime;
+                    //recursivly call new round
+                    dTime = dTime + 500;
+                    round++;
+                    gameStart(combination, dTime);
+                }
+            } else {
+                if (isStrict) {
+                    $('#counter').val('! !');
+                    loseAudio.play();
+                    clearInterval(repeatDelay);
+                    $('.game').off();
+                    return;
+                } else {
+                    //delay to account for already playing sounds
+                    setTimeout(function() {
+                        $('#counter').val('! !');
+                        loseAudio.play();
+                        //revert back to ready status
+                        i = 0;
+                        patternInditcator(combination);
+                    }, 500);
+                }
+            }
+        });
+    }
 }
 
 
@@ -179,11 +227,11 @@ function activate(button) {
 }
 
 function loseTimer(combination) {
-            $('#counter').val('! !');
-            loseAudio.play();
-            i = 0;
-            patternInditcator(combination);
-        }
+    $('#counter').val('! !');
+    loseAudio.play();
+    i = 0;
+    patternInditcator(combination);
+}
 
 function clickSound(button) {
     if (button == 0) {
@@ -197,8 +245,8 @@ function clickSound(button) {
     }
 }
 
-function counterUp(score) {
-    score++;
+function counterUp(combo) {
+	var score = combo.length;
     score = score < 10 ? '0' + score : score;
     $('#counter').val(score);
 }
@@ -206,3 +254,22 @@ function counterUp(score) {
 function offStatus() {
     $('#counter').addClass('invisible');
 }
+
+
+
+
+
+
+
+
+
+
+/*
+ it might be good to prevent clicking on the buttons when you are playing the sequence? 
+ It looks like you only have "strict" mode implemented? 
+ It looks pretty good, though - the color changes are a little "weak". 
+ And I'm finding the response to the clicks to not always be clean - sometimes I click twice and it only looks like I clicked once. 
+ And I think that I just had it shoot me after I got the correct sequence in and didn't press another button? 
+ I just got it into some kind of mode where I push the start button and it shoots almost right away. 
+ Even shooting again after I moved away from the board?
+ */

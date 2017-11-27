@@ -118,6 +118,7 @@ body {
     border: none;
     height: auto;
     margin: 0 auto;
+    margin-top: 10px;
     position: relative;
     width: auto;
 }
@@ -222,12 +223,33 @@ input:checked+.slider:before {
     cursor: pointer;
     display: inline-block;
     height: 15px;
-    margin-left: 40px;
+    margin-left: 25px;
     width: 15px;
 }
 
 .start:active {
     box-shadow: 0 0 0 0;
+}
+
+.light {
+    background-color: #3e4b60;
+    border: 1px solid;
+    border-radius: 50%;
+    box-shadow: 0 0 1px 1px rgba(255, 255, 255, 0.5);
+    height: 7px;
+    width: 7px;
+}
+.right {
+    margin-right: 10px;
+}
+
+.lightactive {
+    background-color: #d8313a;
+    border: 1px solid;
+    border-radius: 50%;
+    box-shadow: 0 0 1px 1px rgba(255, 255, 255, 0.5);
+    height: 7px;
+    width: 7px;
 }
 
 .invisible {
