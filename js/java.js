@@ -4,12 +4,15 @@ $(document).ready(function() {
         var on = $('#onBtn').val();
         if (on == 0) {
             $('#counter').val('0' + 0);
+            isRunning = true;
             readyStatus();
             on += 1;
             $('#onBtn').val(on);
         } else {
             offStatus();
             on -= 1;
+            $('.game').off('click');
+            $('.start').off('click');
             $('#onBtn').val(on);
             isRunning = false;
         }
@@ -29,7 +32,7 @@ const repeatDelay = createTimer();
 var round = 0;
 
 //allow for exiting of game structure when game is off
-var isRunning = true;
+var isRunning = false;
 var isStrict = false;
 
 var combination;
@@ -46,32 +49,26 @@ function readyStatus() {
 
             strictify();
         });
-
+        $('#start').off("click");
         $('#start').click(function(event) {
             /* Act on the event */
             repeatDelay.reset();
             $('#counter').val('0' + 0);
             gameStart();
-            isRunning = false;
         });
-    } else {
-        return;
     }
 }
 
 function strictify() {
     isStrict = isStrict == false ? true : false;
-    console.log(isStrict);
     return;
 }
 
-function gameStart(combo, time) {
+function gameStart(combo) {
     combination = combo || [];
     var next = callNext();
     i = 0;
-    var click = false; //var to check game time out
-    var dTime = time || 5000;
-    
+    var click = false; //var to check game time out    
 
     if (round == 20) {
         winAudio.play();
@@ -80,20 +77,22 @@ function gameStart(combo, time) {
         combination.push(next);
 
         counterUp(combination);
-        console.log(combination);
 
         //interval to space out pattern activation
         patternInditcator(combination);
-        
+
         //end-of-game timeout due to inactivity
         if (!click) {
-        	repeatDelay.reset();
+            repeatDelay.reset();
             repeatDelay.start();
         }
         //user input
+
+        $('.game').off('click');
         $('.game').click(function() {
-        	repeatDelay.reset();
-        	repeatDelay.start();
+
+            repeatDelay.reset();
+            repeatDelay.start();
 
             var userClick = $(this).attr('id');
             click = true;
@@ -107,13 +106,12 @@ function gameStart(combo, time) {
                     repeatDelay.reset();
 
                     //recursivly call new round
-                    dTime = dTime + 500;
                     round++;
-                    gameStart(combination, dTime);
+                    gameStart(combination);
                 }
             } else {
                 if (isStrict) {
-                	repeatDelay.reset();
+                    repeatDelay.reset();
                     $('#counter').val('! !');
                     loseAudio.play();
                     $('.game').off();
@@ -144,26 +142,15 @@ function patternInditcator(combination) {
 
 
     var delay = setInterval(function() {
-    	repeatDelay.reset();
+        repeatDelay.reset();
         if (j < combination.length) {
-
-            //interval to space out multiples of the same button
-            if (combination[j] === combination[j - 1]) {
-                let jCopy = j;
-                setTimeout(function() {
-
-                    activate(combination[jCopy]);
-                }, 200);
-
-            } else {
-                activate(combination[j]);
-            }
+            activate(combination[j]);
         } else {
             clearInterval(delay);
         }
         j++;
         repeatDelay.start();
-    }, 550);
+    }, 750);
 
 }
 
@@ -217,72 +204,64 @@ function clickSound(button) {
 }
 
 function counterUp(combo) {
-	var score = combo.length;
+    var score = combo.length;
     score = score < 10 ? '0' + score : score;
     $('#counter').val(score);
 }
 
 function offStatus() {
+    repeatDelay.reset();
+    combination = [];
+    $('.game').off();
     $('#counter').addClass('invisible');
 }
 
-function createTimer(){
-	var interval = null;
-	var countdown = 5;
+function createTimer() {
+    var interval = null;
+    var countdown = 5;
 
-	var runOut = function(){
-		if (countdown == 0){
-			$('#counter').val('! !');
-			loseAudio.play();
-			countdown = 5;
-			i = 0;
+    var runOut = function() {
+        if (countdown == 0) {
+            $('#counter').val('! !');
+            loseAudio.play();
+            countdown = 5;
+            i = 0;
 
-			if (isStrict){
-				timer.reset();
-				$('.game').off();
-			} else {
-				patternInditcator(combination);
-			}
+            if (isStrict) {
+                timer.reset();
+                $('.game').off();
+            } else {
+                patternInditcator(combination);
+            }
 
-		} else {
-			--countdown;
-		}
-	};
+        } else {
+            --countdown;
+        }
+    };
 
-	var timer = {
-		start: function(){
-			if (!interval){
-				runOut();
-				interval = setInterval(runOut, 1000);
-			}
-		},
-		pause: function(){
-			if (interval){
-				clearInterval(interval);
-				interval = null;
-			}
-		},
-		reset: function(){
-			countdown = 5;
-			this.pause();
-		}
-	};
-	return timer;
+    var timer = {
+        start: function() {
+            if (!interval) {
+                runOut();
+                interval = setInterval(runOut, 1000);
+            }
+        },
+        pause: function() {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+            }
+        },
+        reset: function() {
+            countdown = 5;
+            this.pause();
+        }
+    };
+    return timer;
 }
-
-
-
-
-
-
-
 
 /*
  it might be good to prevent clicking on the buttons when you are playing the sequence? 
- It looks like you only have "strict" mode implemented? 
  It looks pretty good, though - the color changes are a little "weak". 
  And I'm finding the response to the clicks to not always be clean - sometimes I click twice and it only looks like I clicked once. 
- And I think that I just had it shoot me after I got the correct sequence in and didn't press another button? 
- I just got it into some kind of mode where I push the start button and it shoots almost right away. 
- Even shooting again after I moved away from the board?
  */
