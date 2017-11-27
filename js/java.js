@@ -23,15 +23,17 @@ const audio2 = new Audio('https://s3.amazonaws.com/freecodecamp/simonSound3.mp3'
 const audio3 = new Audio('https://s3.amazonaws.com/freecodecamp/simonSound4.mp3');
 const loseAudio = new Audio('https://actions.google.com/sounds/v1/weapons/big_explosion_cut_off.ogg');
 const winAudio = new Audio('https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-four/cartoon_success_fanfair.mp3');
+const repeatDelay = createTimer();
 
 //make game faster with each loop
 var round = 0;
-var aTime = 500;
 
 //allow for exiting of game structure when game is off
 var isRunning = true;
 var isStrict = false;
 
+var combination;
+var i = 0; //increment
 
 function readyStatus() {
 
@@ -47,8 +49,8 @@ function readyStatus() {
 
         $('#start').click(function(event) {
             /* Act on the event */
+            repeatDelay.reset();
             $('#counter').val('0' + 0);
-            aTime = 500;
             gameStart();
             isRunning = false;
         });
@@ -64,12 +66,12 @@ function strictify() {
 }
 
 function gameStart(combo, time) {
-    var combination = combo || [];
+    combination = combo || [];
     var next = callNext();
-    var i = 0; //increment
+    i = 0;
     var click = false; //var to check game time out
     var dTime = time || 5000;
-    var repeatDelay = null;
+    
 
     if (round == 20) {
         winAudio.play();
@@ -82,54 +84,28 @@ function gameStart(combo, time) {
 
         //interval to space out pattern activation
         patternInditcator(combination);
-
+        
         //end-of-game timeout due to inactivity
         if (!click) {
-            repeatDelay = setInterval(function() {
-                console.log('no click');
-                if (isStrict) {
-                    $('#counter').val('! !');
-                    loseAudio.play();
-                    clearInterval(repeatDelay);
-                    $('.game').off();
-                    return;
-                } else {
-                    loseTimer(combination);
-                }
-            }, dTime);
+        	repeatDelay.reset();
+            repeatDelay.start();
         }
         //user input
         $('.game').click(function() {
+        	repeatDelay.reset();
+        	repeatDelay.start();
+
             var userClick = $(this).attr('id');
             click = true;
 
             clickSound(userClick);
 
-            clearInterval(repeatDelay);
-
-            repeatDelay = setInterval(function() {
-                if (isStrict) {
-                    $('#counter').val('! !');
-                    loseAudio.play();
-                    clearInterval(repeatDelay);
-                    $('.game').off();
-                    return;
-                } else {
-                    console.log('click');
-                    loseTimer(combination);
-                    i = 0;
-                }
-            }, dTime);
-
             if (userClick == combination[i]) {
                 i++;
                 if (i == combination.length) {
                     $('.game').off();
-                    clearInterval(repeatDelay);
-                    //score adjust at end of round
-                    
-                    //increase game speed at end of round
-                    aTime = aTime > 200 ? aTime - 5 : aTime;
+                    repeatDelay.reset();
+
                     //recursivly call new round
                     dTime = dTime + 500;
                     round++;
@@ -137,9 +113,9 @@ function gameStart(combo, time) {
                 }
             } else {
                 if (isStrict) {
+                	repeatDelay.reset();
                     $('#counter').val('! !');
                     loseAudio.play();
-                    clearInterval(repeatDelay);
                     $('.game').off();
                     return;
                 } else {
@@ -165,10 +141,10 @@ function callNext() {
 
 function patternInditcator(combination) {
     var j = 0; //increment
-    var dTime = aTime + 50; //delay interval, based on changing game speed
+
 
     var delay = setInterval(function() {
-
+    	repeatDelay.reset();
         if (j < combination.length) {
 
             //interval to space out multiples of the same button
@@ -186,7 +162,9 @@ function patternInditcator(combination) {
             clearInterval(delay);
         }
         j++;
-    }, dTime);
+        repeatDelay.start();
+    }, 550);
+
 }
 
 //button indication of simon's pattern
@@ -198,7 +176,7 @@ function activate(button) {
             audio0.play();
             setTimeout(function() {
                 $('#0').removeClass('greenactive');
-            }, aTime);
+            }, 500);
 
             break;
         case 1:
@@ -206,7 +184,7 @@ function activate(button) {
             audio1.play();
             setTimeout(function() {
                 $('#1').removeClass('redactive');
-            }, aTime);
+            }, 500);
 
             break;
         case 2:
@@ -214,23 +192,16 @@ function activate(button) {
             audio2.play();
             setTimeout(function() {
                 $('#2').removeClass('blueactive');
-            }, aTime);
+            }, 500);
             break;
         case 3:
             $('#3').addClass('yellowactive');
             audio3.play();
             setTimeout(function() {
                 $('#3').removeClass('yellowactive');
-            }, aTime);
+            }, 500);
             break;
     }
-}
-
-function loseTimer(combination) {
-    $('#counter').val('! !');
-    loseAudio.play();
-    i = 0;
-    patternInditcator(combination);
 }
 
 function clickSound(button) {
@@ -255,7 +226,49 @@ function offStatus() {
     $('#counter').addClass('invisible');
 }
 
+function createTimer(){
+	var interval = null;
+	var countdown = 5;
 
+	var runOut = function(){
+		if (countdown == 0){
+			$('#counter').val('! !');
+			loseAudio.play();
+			countdown = 5;
+			i = 0;
+
+			if (isStrict){
+				timer.reset();
+				$('.game').off();
+			} else {
+				patternInditcator(combination);
+			}
+
+		} else {
+			--countdown;
+		}
+	};
+
+	var timer = {
+		start: function(){
+			if (!interval){
+				runOut();
+				interval = setInterval(runOut, 1000);
+			}
+		},
+		pause: function(){
+			if (interval){
+				clearInterval(interval);
+				interval = null;
+			}
+		},
+		reset: function(){
+			countdown = 5;
+			this.pause();
+		}
+	};
+	return timer;
+}
 
 
 
